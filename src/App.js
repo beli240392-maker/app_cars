@@ -8,11 +8,10 @@ const FIREBASE_API_KEY = "AIzaSyDFNIMEcyk-r1vbbQz5CmpTpVmFtLxWEC0";
 function App() {
   const [vehicles, setVehicles] = useState([]);
   const [formData, setFormData] = useState({
-    name: '',
     make: '',
     lastOilChange: '',
     mileage: '',
-    nextDueKm: '5000'
+    nextChangeAt: ''
   });
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,11 +38,10 @@ function App() {
             const fields = doc.fields;
             vehiclesData.push({
               id: doc.name.split('/').pop(),
-              name: fields.name?.stringValue || '',
               make: fields.make?.stringValue || '',
               lastOilChange: fields.lastOilChange?.stringValue || '',
               mileage: fields.mileage?.stringValue || '',
-              nextDueKm: fields.nextDueKm?.stringValue || '5000'
+              nextChangeAt: fields.nextChangeAt?.stringValue || ''
             });
           });
         }
@@ -66,7 +64,7 @@ function App() {
   };
 
   const handleAddVehicle = async () => {
-    if (!formData.name || !formData.make || !formData.lastOilChange) {
+    if (!formData.make || !formData.lastOilChange || !formData.mileage || !formData.nextChangeAt) {
       alert('Por favor completa todos los campos');
       return;
     }
@@ -76,11 +74,10 @@ function App() {
     try {
       const vehicleData = {
         fields: {
-          name: { stringValue: formData.name },
           make: { stringValue: formData.make },
           lastOilChange: { stringValue: formData.lastOilChange },
           mileage: { stringValue: formData.mileage },
-          nextDueKm: { stringValue: formData.nextDueKm }
+          nextChangeAt: { stringValue: formData.nextChangeAt }
         }
       };
 
@@ -118,11 +115,10 @@ function App() {
       }
 
       setFormData({
-        name: '',
         make: '',
         lastOilChange: '',
         mileage: '',
-        nextDueKm: '5000'
+        nextChangeAt: ''
       });
     } catch (error) {
       console.error("Error guardando vehículo:", error);
@@ -167,15 +163,17 @@ function App() {
     return days;
   };
 
-  const getStatusColor = (days) => {
-    if (days > 180) return 'bg-red-100 border-red-300';
-    if (days > 90) return 'bg-yellow-100 border-yellow-300';
+  const getStatusColor = (mileage, nextChangeAt) => {
+    const remaining = nextChangeAt - mileage;
+    if (remaining <= 0) return 'bg-red-100 border-red-300';
+    if (remaining <= 1000) return 'bg-yellow-100 border-yellow-300';
     return 'bg-green-100 border-green-300';
   };
 
-  const getStatusText = (days) => {
-    if (days > 180) return 'Cambio urgente';
-    if (days > 90) return 'Próximamente';
+  const getStatusText = (mileage, nextChangeAt) => {
+    const remaining = nextChangeAt - mileage;
+    if (remaining <= 0) return 'Cambio urgente';
+    if (remaining <= 1000) return 'Próximamente';
     return 'Al día';
   };
 
@@ -203,20 +201,6 @@ function App() {
           
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre del vehículo
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Auto principal"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Marca y modelo
@@ -260,18 +244,16 @@ function App() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Próximo cambio cada (km)
+                  Próximo cambio en (km)
                 </label>
-                <select
-                  name="nextDueKm"
-                  value={formData.nextDueKm}
+                <input
+                  type="number"
+                  name="nextChangeAt"
+                  value={formData.nextChangeAt}
                   onChange={handleInputChange}
+                  placeholder="Ej: 55000"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="5000">5000 km</option>
-                  <option value="10000">10000 km</option>
-                  <option value="15000">15000 km</option>
-                </select>
+                />
               </div>
             </div>
 
@@ -289,11 +271,10 @@ function App() {
                   onClick={() => {
                     setEditingId(null);
                     setFormData({
-                      name: '',
                       make: '',
                       lastOilChange: '',
                       mileage: '',
-                      nextDueKm: '5000'
+                      nextChangeAt: ''
                     });
                   }}
                   className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition font-medium"
@@ -312,16 +293,17 @@ function App() {
             </div>
           ) : (
             vehicles.map(vehicle => {
-              const daysSince = calculateDaysSince(vehicle.lastOilChange);
-              const statusColor = getStatusColor(daysSince);
-              const statusText = getStatusText(daysSince);
+              const mileage = parseInt(vehicle.mileage) || 0;
+              const nextChangeAt = parseInt(vehicle.nextChangeAt) || 0;
+              const statusColor = getStatusColor(mileage, nextChangeAt);
+              const statusText = getStatusText(mileage, nextChangeAt);
+              const remaining = nextChangeAt - mileage;
 
               return (
                 <div key={vehicle.id} className={`rounded-lg shadow-lg p-6 border-2 ${statusColor}`}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-gray-800">{vehicle.name}</h3>
-                      <p className="text-gray-600">{vehicle.make}</p>
+                      <h3 className="text-2xl font-bold text-gray-800">{vehicle.make}</h3>
                     </div>
                     <span className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">
                       {statusText}
@@ -332,31 +314,35 @@ function App() {
                     <div>
                       <p className="text-sm text-gray-600">Último cambio</p>
                       <p className="font-semibold text-gray-800">{vehicle.lastOilChange}</p>
-                      <p className="text-xs text-gray-500">Hace {daysSince} días</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Kilometraje</p>
-                      <p className="font-semibold text-gray-800">{vehicle.mileage || '-'} km</p>
+                      <p className="text-sm text-gray-600">Kilometraje actual</p>
+                      <p className="font-semibold text-gray-800">{vehicle.mileage} km</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Próximo cambio</p>
-                      <p className="font-semibold text-gray-800">Cada {vehicle.nextDueKm} km</p>
+                      <p className="font-semibold text-gray-800">{vehicle.nextChangeAt} km</p>
                     </div>
-                    <div className="flex gap-2 items-end">
-                      <button
-                        onClick={() => handleEdit(vehicle)}
-                        className="flex-1 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition text-sm font-medium"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(vehicle.id)}
-                        disabled={syncing}
-                        className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition disabled:bg-gray-400"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                    <div>
+                      <p className="text-sm text-gray-600">Falta</p>
+                      <p className="font-semibold text-gray-800">{remaining} km</p>
                     </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(vehicle)}
+                      className="flex-1 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition text-sm font-medium"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(vehicle.id)}
+                      disabled={syncing}
+                      className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition disabled:bg-gray-400"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               );
