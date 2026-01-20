@@ -275,6 +275,9 @@ function App() {
                   Cancelar
                 <button
                   onClick={() => handleEdit(vehicle)}
+                >
+                  Editar
+                </button>
             </div>
           </div>
         </div>
