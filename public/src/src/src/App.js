@@ -286,4 +286,86 @@ function App() {
               </button>
               {editingId && (
                 <button
-                  o
+                  onClick={() => {
+                    setEditingId(null);
+                    setFormData({
+                      name: '',
+                      make: '',
+                      lastOilChange: '',
+                      mileage: '',
+                      nextDueKm: '5000'
+                    });
+                  }}
+                  className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition font-medium"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {vehicles.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+              <p className="text-lg">No hay vehículos registrados. ¡Agrega uno para comenzar!</p>
+            </div>
+          ) : (
+            vehicles.map(vehicle => {
+              const daysSince = calculateDaysSince(vehicle.lastOilChange);
+              const statusColor = getStatusColor(daysSince);
+              const statusText = getStatusText(daysSince);
+
+              return (
+                <div key={vehicle.id} className={`rounded-lg shadow-lg p-6 border-2 ${statusColor}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-800">{vehicle.name}</h3>
+                      <p className="text-gray-600">{vehicle.make}</p>
+                    </div>
+                    <span className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">
+                      {statusText}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Último cambio</p>
+                      <p className="font-semibold text-gray-800">{vehicle.lastOilChange}</p>
+                      <p className="text-xs text-gray-500">Hace {daysSince} días</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Kilometraje</p>
+                      <p className="font-semibold text-gray-800">{vehicle.mileage || '-'} km</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Próximo cambio</p>
+                      <p className="font-semibold text-gray-800">Cada {vehicle.nextDueKm} km</p>
+                    </div>
+                    <div className="flex gap-2 items-end">
+                      <button
+                        onClick={() => handleEdit(vehicle)}
+                        className="flex-1 bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition text-sm font-medium"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(vehicle.id)}
+                        disabled={syncing}
+                        className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition disabled:bg-gray-400"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
