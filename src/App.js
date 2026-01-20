@@ -273,8 +273,8 @@ function App() {
                   className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition font-medium"
                 >
                   Cancelar
-                </button>
-              )}
+                <button
+                  onClick={() => handleEdit(vehicle)}}
             </div>
           </div>
         </div>
